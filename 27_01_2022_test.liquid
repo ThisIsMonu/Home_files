@@ -1,0 +1,98 @@
+{{ 'ga-custom.css'| asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign  product = all_products['variable-product']
+-%}
+
+<!-- data -->
+
+<div id="ga-data">
+  {% for variant in product.variants %}
+    <span id="{{ variant.title | replace: ' / ','-' }}" data-variant-id="{{ variant.id }}" data-variant-price="{{ variant.price | money_with_currency }}"></span>
+  {% endfor %}
+</div>
+
+<!-- end data -->
+
+
+<div class="ga-head">
+  <h1>{{ product.title }}</h1>
+</div>
+
+<div class="ga-pc">
+  <div class="ga-desc">
+    <div class="ga-media">
+      {% for image in product.images %}
+        {% if image.id == product.featured_image.id %}
+          {{ product.featured_image | image_url:width:500 | image_tag }}
+        {% else %}
+          {{ image | image_url:width:250 | image_tag }}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="ga-mc">
+      <h3>{{ product.vendor }}</h3>
+      <p>{{ product.description }}</p>
+      
+      {% unless product.has_only_default_variant %}
+        <h1 id="variant-price">{{ product.price_min | money_with_currency }} - {{ product.price_max | money_without_currency }}</h1>
+      {% else %}
+        <h1>{{ product.price | money_with_currency }}</h1>
+      {% endunless %}
+
+      <form action="/cart/add" method="post" enctype="multipart/form-data">
+        {% unless product.has_only_default_variant %}
+          {% for product_option in product.options_with_values %}
+            <h2>{{ product_option.name }}</h2>
+              <select id={{ product_option.name | downcase }} >
+                {% for value in product_option.values %}
+                  <option value="{{ value }}" 
+                    {% comment %} {% if value == product_option.selected_value %}
+                      selected="selected"
+                    {% endif %} {% endcomment %}
+                  >
+                    {{ value }}
+                  </option>
+                {% endfor %}
+              </select>
+          {% endfor %}
+          <input id="variant-id" type="hidden" name="id">
+          {% else %}
+          {% for variant in product.variants %}
+            <input type="hidden" name="id" value="{{ variant.id }}">
+          {% endfor %}
+        {% endunless %}
+
+        <label for="Quantity-{{ section.id }}">Quantity</label>
+        <input
+              type="number"
+              name="quantity"
+              id="Quantity-{{ section.id }}"
+              min="1"
+              value="1"
+            >
+      <input name="add" value="Add to cart" type="submit" class="button" id="add"> 
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% javascript %}
+
+let sizeBtn               = document.querySelector('#size'),
+    colorBtn              = document.querySelector('#color'),
+    formVariantIdElem     = document.querySelector('#variant-id'),
+    variantPriceELem      = document.querySelector('#variant-price');
+
+sizeBtn.addEventListener('change' , ga_selectedVariant);
+colorBtn.addEventListener('change' , ga_selectedVariant);
+
+function ga_selectedVariant()
+{
+  let id            = document.querySelector('#' + sizeBtn.value + '-' + colorBtn.value ).dataset.variantId,
+      price         = document.querySelector('#' + sizeBtn.value + '-' + colorBtn.value ).dataset.variantPrice;
+  formVariantIdElem.value       = id;
+  variantPriceELem.innerHTML    = price;
+}
+{% endjavascript %}
